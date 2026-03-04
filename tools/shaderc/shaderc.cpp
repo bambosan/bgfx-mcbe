@@ -977,14 +977,33 @@ namespace bgfx
 		char find[32];
 		bx::snprintf(find, sizeof(find), "gl_FragData[%d]", _idx);
 
+		const char* fragDataPos = strstr(_data, find);
+		char fragDataType[16] = "vec4";
+
+		if (fragDataPos != NULL)
+		{
+			const char* eq = strchr(fragDataPos, '=');
+			if (eq != NULL)
+			{
+				const char* typePrefix = eq + 1;
+				while (bx::isSpace(*typePrefix)) ++typePrefix;
+
+				if (*typePrefix == 'u') {
+					strcpy(fragDataType, "uvec4");
+				} else if (*typePrefix == 'i') {
+					strcpy(fragDataType, "ivec4");
+				}
+			}
+		}
+
 		char replace[32];
 		bx::snprintf(replace, sizeof(replace), "bgfx_FragData%d", _idx);
-
 		strReplace(_data, find, replace);
 
 		_preprocessor.writef(
-			" \\\n\t%sout vec4 bgfx_FragData%d : SV_TARGET%d"
+			" \\\n\t%sout %s bgfx_FragData%d : SV_TARGET%d"
 			, _comma ? ", " : "  "
+			, fragDataType
 			, _idx
 			, _idx
 			);
@@ -1757,24 +1776,42 @@ namespace bgfx
 					&&  profile->id >= 300)
 					{
 						const bool hasFragColor   = !bx::strFind(input, "gl_FragColor").isEmpty();
-						bool hasFragData[8] = {};
-						uint32_t numFragData = 0;
-						for (uint32_t ii = 0; ii < BX_COUNTOF(hasFragData); ++ii)
-						{
-							char temp[32];
-							bx::snprintf(temp, BX_COUNTOF(temp), "gl_FragData[%d]", ii);
-							hasFragData[ii] = !bx::strFind(input, temp).isEmpty();
-							numFragData += hasFragData[ii];
-						}
-						if (hasFragColor)
-						{
+						if (hasFragColor) {
 							preprocessor.writef("#define gl_FragColor bgfx_FragColor\n");
 							preprocessor.writef("out mediump vec4 bgfx_FragColor;\n");
-						}
-						else if (numFragData)
-						{
-							preprocessor.writef("#define gl_FragData bgfx_FragData\n");
-							preprocessor.writef("out mediump vec4 bgfx_FragData[gl_MaxDrawBuffers];\n");
+						} else {
+							for (uint32_t ii = 0; ii < 8; ++ii)
+							{
+								char temp[32];
+								bx::snprintf(temp, BX_COUNTOF(temp), "gl_FragData[%d]", ii);
+								if (!bx::strFind(input, temp).isEmpty())
+								{
+									const char* fragDataPos = strstr(input, temp);
+									char fragDataType[16] = "vec4";
+
+									if (fragDataPos != NULL)
+									{
+										const char* eq = strchr(fragDataPos, '=');
+										if (eq != NULL)
+										{
+											const char* typePrefix = eq + 1;
+											while (bx::isSpace(*typePrefix)) ++typePrefix;
+
+											if (*typePrefix == 'u') {
+												strcpy(fragDataType, "uvec4");
+											} else if (*typePrefix == 'i') {
+												strcpy(fragDataType, "ivec4");
+											}
+										}
+									}
+
+									char replace[32];
+									bx::snprintf(replace, sizeof(replace), "bgfx_FragData%d", ii);
+									strReplace(input, temp, replace);
+
+									preprocessor.writef("layout(location = %d) out %s bgfx_FragData%d;\n", ii, fragDataType, ii);
+								}
+							}
 						}
 					}
 
