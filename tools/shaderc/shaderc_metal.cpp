@@ -538,24 +538,24 @@ namespace bgfx { namespace metal
 					spirv_cross::ShaderResources resourcesrefl = refl.get_shader_resources();
 
 					// Loop through the separate_images, and extract the uniform names:
-					for (auto& resource : resourcesrefl.separate_images)
-					{
-						std::string name = refl.get_name(resource.id);
-						if (name.size() > 7 && 0 == bx::strCmp(name.c_str() + name.length() - 7, "Texture"))
-						{
-							name = name.substr(0, name.length() - 7);
-						}
+					// for (auto& resource : resourcesrefl.separate_images)
+					// {
+					// 	std::string name = refl.get_name(resource.id);
+					// 	if (name.size() > 7 && 0 == bx::strCmp(name.c_str() + name.length() - 7, "Texture"))
+					// 	{
+					// 		name = name.substr(0, name.length() - 7);
+					// 	}
 
-						Uniform un;
-						un.name = name;
-						un.type = UniformType::Sampler;
+					// 	Uniform un;
+					// 	un.name = name;
+					// 	un.type = UniformType::Sampler;
 
-						un.num = 0;			// needed?
-						un.regIndex = 0;	// needed?
-						un.regCount = 0;	// needed?
+					// 	un.num = 0;			// needed?
+					// 	un.regIndex = 0;	// needed?
+					// 	un.regCount = 0;	// needed?
 
-						uniforms.push_back(un);
-					}
+					// 	uniforms.push_back(un);
+					// }
 
 					uint16_t size = writeUniformArray(_shaderWriter, uniforms, _options.shaderType == 'f');
 
